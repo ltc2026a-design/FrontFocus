@@ -6,7 +6,8 @@
  *   `@tauri-apps/plugin-notification`. El gancho queda documentado e
  *   implementado de forma defensiva (dynamic import) para no añadir la
  *   dependencia al bundle web.
- * - Capacitor: gancho análogo con `@capacitor/local-notifications`.
+ * - Capacitor: `@capacitor/local-notifications`, cargado con dynamic import
+ *   para que el código nativo no pese en el bundle web.
  *
  * En todos los entornos la API pública es la misma: requestPermission() y
  * notify({ title, body }), y siempre se hace fallback silencioso si el
@@ -25,7 +26,23 @@ export function detectPlatform(): Platform {
 export function isSupported(): boolean {
   const platform = detectPlatform()
   if (platform === 'web') return typeof Notification !== 'undefined'
-  return true // nativo: asumimos soporte vía plugin
+  return platform === 'capacitor'
+}
+
+/** 'granted' | 'denied' | 'prompt' | 'unsupported' — sin molestar al usuario. */
+export async function permissionStatus(): Promise<string> {
+  const platform = detectPlatform()
+  try {
+    if (platform === 'capacitor') {
+      const { LocalNotifications } = await import('@capacitor/local-notifications')
+      const status = await LocalNotifications.checkPermissions()
+      return status.display === 'granted' ? 'granted' : status.display === 'denied' ? 'denied' : 'prompt'
+    }
+    if (typeof Notification === 'undefined') return 'unsupported'
+    return Notification.permission
+  } catch {
+    return 'unsupported'
+  }
 }
 
 export async function requestPermission(): Promise<boolean> {
@@ -40,11 +57,9 @@ export async function requestPermission(): Promise<boolean> {
       return false
     }
     if (platform === 'capacitor') {
-      // GANCHO CAPACITOR: descomentar al empaquetar como app móvil.
-      // const { LocalNotifications } = await import('@capacitor/local-notifications')
-      // const status = await LocalNotifications.requestPermissions()
-      // return status.display === 'granted'
-      return false
+      const { LocalNotifications } = await import('@capacitor/local-notifications')
+      const status = await LocalNotifications.requestPermissions()
+      return status.display === 'granted'
     }
     if (typeof Notification === 'undefined') return false
     if (Notification.permission === 'granted') return true
@@ -62,6 +77,9 @@ export interface NotifyOptions {
   tag?: string
 }
 
+/** Android exige id numérico único por notificación local. */
+let lastId = Math.floor(Date.now() / 1000)
+
 export async function notify(options: NotifyOptions): Promise<void> {
   const platform = detectPlatform()
   try {
@@ -75,11 +93,14 @@ export async function notify(options: NotifyOptions): Promise<void> {
       return
     }
     if (platform === 'capacitor') {
-      // GANCHO CAPACITOR:
-      // const { LocalNotifications } = await import('@capacitor/local-notifications')
-      // await LocalNotifications.schedule({
-      //   notifications: [{ id: Date.now(), title: options.title, body: options.body }],
-      // })
+      const { LocalNotifications } = await import('@capacitor/local-notifications')
+      const granted = await requestPermission()
+      if (!granted) return
+      const id = Math.max(lastId + 1, Math.floor(Date.now() / 1000))
+      lastId = id
+      await LocalNotifications.schedule({
+        notifications: [{ id, title: options.title, body: options.body ?? '' }],
+      })
       return
     }
     if (typeof Notification === 'undefined') return

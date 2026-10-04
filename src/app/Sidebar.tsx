@@ -14,11 +14,9 @@ export function Sidebar() {
   const items = navItemsFor(user?.rol)
 
   return (
-    <motion.aside
-      initial={false}
-      animate={{ width: collapsed ? 76 : 244 }}
-      transition={{ duration: 0.25, ease: 'easeInOut' }}
-      className="glass sticky top-0 hidden h-screen shrink-0 flex-col border-r border-slate-200/60 py-4 md:flex dark:border-white/10"
+    <aside
+      style={{ width: collapsed ? 76 : 244 }}
+      className="glass-solid sticky top-0 hidden h-screen shrink-0 flex-col border-r border-slate-200/60 py-4 transition-[width] duration-200 ease-in-out md:flex dark:border-white/10"
     >
       <div className="mb-6 flex items-center gap-2.5 px-4">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary shadow-[0_0_18px_rgba(76,111,255,0.45)]">
@@ -80,6 +78,6 @@ export function Sidebar() {
         </motion.span>
         {!collapsed && <span>Colapsar</span>}
       </button>
-    </motion.aside>
+    </aside>
   )
 }

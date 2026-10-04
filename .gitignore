@@ -3,3 +3,6 @@ dist
 *.local
 .env
 .DS_Store
+# Proyecto Android de Capacitor: se regenera con `npm run cap:android` y pesa
+# cientos de MB de outputs de Gradle. Vercel solo necesita el bundle web.
+android/

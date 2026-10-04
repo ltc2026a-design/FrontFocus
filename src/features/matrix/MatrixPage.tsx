@@ -1,5 +1,6 @@
 import {
   DndContext,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   TouchSensor,
@@ -12,7 +13,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Grid2X2, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { Button } from '@/components/Button'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
@@ -23,7 +24,7 @@ import { useErrorToast } from '@/hooks/useErrorToast'
 import { apiErrorMessage, tasksApi } from '@/lib/api'
 import type { Quadrant, Task } from '@/lib/types'
 import { QUADRANTS, cn } from '@/lib/utils'
-import { TaskCard } from './TaskCard'
+import { TaskCard, TaskCardOverlay } from './TaskCard'
 import { TaskDetailDrawer } from './TaskDetailPanel'
 import { TaskFormModal, type TaskFormValues } from './TaskFormModal'
 
@@ -31,7 +32,7 @@ import { TaskFormModal, type TaskFormValues } from './TaskFormModal'
 // Cuadrante droppable
 // ---------------------------------------------------------------------------
 
-function QuadrantColumn({
+const QuadrantColumn = memo(function QuadrantColumn({
   quadrantId,
   label,
   tasks,
@@ -39,18 +40,14 @@ function QuadrantColumn({
   onDelete,
   onComplete,
   onAdd,
-  activeId,
 }: {
   quadrantId: Quadrant
   label: string
-  shortLabel: string
-  hex: string
   tasks: Task[]
   onSelect: (t: Task) => void
   onDelete: (t: Task) => void
   onComplete: (t: Task) => void
   onAdd: (q: Quadrant) => void
-  activeId: string | null
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: quadrantId })
   const config = QUADRANTS.find((q) => q.id === quadrantId)!
@@ -91,7 +88,6 @@ function QuadrantColumn({
             onSelect={onSelect}
             onDelete={onDelete}
             onComplete={onComplete}
-            dragging={activeId === task.id}
           />
         ))}
         {tasks.length === 0 && (
@@ -102,7 +98,7 @@ function QuadrantColumn({
       </div>
     </div>
   )
-}
+})
 
 // ---------------------------------------------------------------------------
 // Página Matriz de Eisenhower
@@ -133,14 +129,28 @@ export function MatrixPage() {
     useSensor(KeyboardSensor),
   )
 
-  const tasks = (tasksQuery.data ?? [])
-    .filter((t) => t.estado !== 'eliminada')
-    .sort((a, b) => {
-      // Completadas al final
-      const ac = a.estado === 'completada' ? 1 : 0
-      const bc = b.estado === 'completada' ? 1 : 0
-      return ac - bc
-    })
+  const tasks = useMemo(
+    () =>
+      (tasksQuery.data ?? [])
+        .filter((t) => t.estado !== 'eliminada')
+        .slice()
+        .sort((a, b) => {
+          // Completadas al final
+          const ac = a.estado === 'completada' ? 1 : 0
+          const bc = b.estado === 'completada' ? 1 : 0
+          return ac - bc
+        }),
+    [tasksQuery.data],
+  )
+
+  // Agrupar una sola vez por render: sin esto cada cuadrante filtraba la lista
+  // completa en cada re-render y se deshacía el memo de las tarjetas.
+  const tasksByQuadrant = useMemo(() => {
+    const map = new Map<Quadrant, Task[]>()
+    for (const q of QUADRANTS) map.set(q.id, [])
+    for (const t of tasks) map.get(t.cuadrante)?.push(t)
+    return map
+  }, [tasks])
 
   const moveTask = useMutation({
     mutationFn: ({ id, cuadrante }: { id: string; cuadrante: Quadrant }) =>
@@ -219,7 +229,16 @@ export function MatrixPage() {
     },
   })
 
-  const onDragStart = (event: DragStartEvent) => setActiveId(String(event.active.id))
+  const onDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(String(event.active.id))
+  }, [])
+
+  const onDragCancel = useCallback(() => setActiveId(null), [])
+
+  const activeTask = useMemo(
+    () => tasks.find((t) => t.id === activeId) ?? null,
+    [tasks, activeId],
+  )
 
   const onDragEnd = (event: DragEndEvent) => {
     setActiveId(null)
@@ -241,11 +260,17 @@ export function MatrixPage() {
     moveTask.mutate({ id: taskId, cuadrante: targetQuadrant })
   }
 
-  const openNew = (quadrant: Quadrant) => {
+  const openNew = useCallback((quadrant: Quadrant) => {
     setEditingTask(null)
     setFormQuadrant(quadrant)
     setFormOpen(true)
-  }
+  }, [])
+
+  // Identidades estables: sin esto el memo de TaskCard/QuadrantColumn no sirve.
+  const onSelectTask = useCallback((t: Task) => setSelectedTaskId(t.id), [])
+  const onDeleteTask = useCallback((t: Task) => setDeletingTask(t), [])
+  const completeTaskMutate = completeTask.mutate
+  const onCompleteTask = useCallback((t: Task) => completeTaskMutate(t.id), [completeTaskMutate])
 
   return (
     <PageTransition>
@@ -286,31 +311,26 @@ export function MatrixPage() {
             sensors={sensors}
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
-            onDragCancel={() => setActiveId(null)}
+            onDragCancel={onDragCancel}
           >
             <div className="grid gap-3 sm:grid-cols-2">
-              {QUADRANTS.map((q, i) => (
-                <motion.div
+              {QUADRANTS.map((q) => (
+                <QuadrantColumn
                   key={q.id}
-                  initial={{ opacity: 0, y: 14 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25, delay: i * 0.05, ease: 'easeOut' }}
-                >
-                  <QuadrantColumn
-                    quadrantId={q.id}
-                    label={q.label}
-                    shortLabel={q.shortLabel}
-                    hex={q.hex}
-                    tasks={tasks.filter((t) => t.cuadrante === q.id)}
-                    onSelect={(t) => setSelectedTaskId(t.id)}
-                    onDelete={(t) => setDeletingTask(t)}
-                    onComplete={(t) => completeTask.mutate(t.id)}
-                    onAdd={openNew}
-                    activeId={activeId}
-                  />
-                </motion.div>
+                  quadrantId={q.id}
+                  label={q.label}
+                  tasks={tasksByQuadrant.get(q.id) ?? []}
+                  onSelect={onSelectTask}
+                  onDelete={onDeleteTask}
+                  onComplete={onCompleteTask}
+                  onAdd={openNew}
+                />
               ))}
             </div>
+            {/* La copia que sigue al dedo: evita re-renderizar las columnas */}
+            <DragOverlay dropAnimation={null}>
+              {activeTask ? <TaskCardOverlay task={activeTask} /> : null}
+            </DragOverlay>
           </DndContext>
         )}
       </div>

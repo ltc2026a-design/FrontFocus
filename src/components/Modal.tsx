@@ -35,7 +35,7 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50"
             onClick={onClose}
             aria-hidden
           />
@@ -48,7 +48,9 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className={cn(
-              'glass-strong relative z-10 w-full max-w-lg rounded-2xl shadow-2xl shadow-black/40',
+              // glass-solid: un modal que entra con scale sobre una capa con
+              // backdrop-blur obliga a re-dibujar el desenfoque en cada cuadro.
+              'glass-solid relative z-10 w-full max-w-lg rounded-2xl shadow-2xl shadow-black/40',
               'max-h-[90vh] flex flex-col',
               className,
             )}

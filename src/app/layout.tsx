@@ -3,6 +3,7 @@ import { useUiStore } from '@/stores/uiStore'
 import { BottomNav } from './BottomNav'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
+import { useNotificationConsent } from './useNotificationConsent'
 
 /**
  * Layout autenticado. En modo foco (sesión pomodoro de trabajo activa)
@@ -10,6 +11,7 @@ import { Sidebar } from './Sidebar'
  */
 export function AppLayout() {
   const focusMode = useUiStore((s) => s.focusMode)
+  useNotificationConsent()
 
   // El árbol debe permanecer estable entre modos: si cambiamos la estructura
   // (p. ej. <div> vs <main>) React remonta el <Outlet/> y las páginas pierden

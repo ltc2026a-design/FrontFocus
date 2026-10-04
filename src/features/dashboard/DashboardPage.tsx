@@ -188,7 +188,12 @@ export function DashboardPage() {
                     }}
                     labelStyle={{ color: '#8b96ab' }}
                   />
-                  <Bar dataKey="tareasCompletadas" name="Completadas" radius={[6, 6, 0, 0]}>
+                  <Bar
+                    dataKey="tareasCompletadas"
+                    name="Completadas"
+                    radius={[6, 6, 0, 0]}
+                    isAnimationActive={false}
+                  >
                     {chartData.map((entry, index) => (
                       <Cell
                         key={index}

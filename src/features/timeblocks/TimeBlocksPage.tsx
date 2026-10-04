@@ -8,10 +8,10 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core'
 import { useDraggable } from '@dnd-kit/core'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { CalendarClock, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { Button } from '@/components/Button'
 import { Card } from '@/components/Card'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -26,6 +26,11 @@ import { cn, quadrantConfig, toDateInput } from '@/lib/utils'
 
 const START_HOUR = 6
 const END_HOUR = 23 // última etiqueta; los bloques empiezan entre 6:00 y 22:00
+
+/** Array vacío estable para los `?? []`: evita que los useMemo se recalculen. */
+const NO_BLOCKS: TimeBlock[] = []
+
+const HOURS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i)
 
 function parseHour(hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number)
@@ -110,7 +115,7 @@ function BlockChip({ block, onDelete }: { block: TimeBlock; onDelete: () => void
 // Franja horaria droppable
 // ---------------------------------------------------------------------------
 
-function HourSlot({
+const HourSlot = memo(function HourSlot({
   hour,
   blocks,
   onDeleteBlock,
@@ -148,7 +153,7 @@ function HourSlot({
       </div>
     </div>
   )
-}
+})
 
 // ---------------------------------------------------------------------------
 // Página Time-Blocking
@@ -163,6 +168,9 @@ export function TimeBlocksPage() {
   const blocksQuery = useQuery({
     queryKey: ['timeblocks', fecha],
     queryFn: () => timeblocksApi.list(fecha),
+    // Cambiar de día mantiene los bloques anteriores un instante en vez de
+    // dejar la agenda en blanco mientras responde el servidor.
+    placeholderData: keepPreviousData,
   })
   const tasksQuery = useQuery({
     queryKey: ['tasks'],
@@ -176,11 +184,30 @@ export function TimeBlocksPage() {
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
   )
 
-  const blocks = blocksQuery.data ?? []
-  const blockedTaskIds = new Set(blocks.map((b) => b.tareaId))
-  const unassigned = (tasksQuery.data ?? []).filter(
-    (t) => t.estado !== 'eliminada' && t.estado !== 'completada' && !blockedTaskIds.has(t.id),
-  )
+  const blocks = blocksQuery.data ?? NO_BLOCKS
+  // Las tareas "sin bloque" se recalculaban en cada render (y esta página
+  // re-renderiza en cada arrastre). Con memo solo cambia cuando cambian los datos.
+  const unassigned = useMemo(() => {
+    const blockedTaskIds = new Set(blocks.map((b) => b.tareaId))
+    return (tasksQuery.data ?? []).filter(
+      (t) => t.estado !== 'eliminada' && t.estado !== 'completada' && !blockedTaskIds.has(t.id),
+    )
+  }, [blocks, tasksQuery.data])
+
+  // Los bloques se agrupan por hora una sola vez; así HourSlot puede ir en memo
+  // y el arrastre no vuelve a pintar las 18 franjas del día.
+  const blocksByHour = useMemo(() => {
+    const map = new Map<number, TimeBlock[]>()
+    for (const b of blocks) {
+      const h = Math.floor(parseHour(b.horaInicio))
+      const list = map.get(h)
+      if (list) list.push(b)
+      else map.set(h, [b])
+    }
+    return map
+  }, [blocks])
+
+  const onDeleteBlock = useCallback((b: TimeBlock) => setDeleting(b), [])
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['timeblocks', fecha] })
 
@@ -256,8 +283,6 @@ export function TimeBlocksPage() {
     d.setDate(d.getDate() + days)
     setFecha(toDateInput(d))
   }
-
-  const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i)
 
   return (
     <PageTransition>
@@ -336,13 +361,13 @@ export function TimeBlocksPage() {
                 </div>
               ) : (
                 <div>
-                  {hours.map((h) => (
+                  {HOURS.map((h) => (
                     <HourSlot
                       key={h}
                       hour={h}
                       isLast={h === END_HOUR}
-                      blocks={blocks.filter((b) => Math.floor(parseHour(b.horaInicio)) === h)}
-                      onDeleteBlock={(b) => setDeleting(b)}
+                      blocks={blocksByHour.get(h) ?? NO_BLOCKS}
+                      onDeleteBlock={onDeleteBlock}
                     />
                   ))}
                 </div>

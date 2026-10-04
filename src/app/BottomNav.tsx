@@ -23,7 +23,7 @@ export function BottomNav() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-40 bg-black/50 md:hidden"
             onClick={() => setMoreOpen(false)}
           >
             <motion.div
@@ -32,7 +32,7 @@ export function BottomNav() {
               exit={{ y: 60, opacity: 0 }}
               transition={{ duration: 0.22, ease: 'easeOut' }}
               onClick={(e) => e.stopPropagation()}
-              className="glass-strong absolute bottom-16 left-3 right-3 rounded-2xl p-3"
+              className="glass-solid absolute bottom-16 left-3 right-3 rounded-2xl p-3"
             >
               <div className="mb-2 flex items-center justify-between px-2">
                 <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Más opciones</p>
@@ -69,7 +69,7 @@ export function BottomNav() {
         )}
       </AnimatePresence>
 
-      <nav className="glass fixed bottom-0 left-0 right-0 z-50 flex h-16 items-stretch justify-around border-t border-slate-200/60 px-2 md:hidden dark:border-white/10">
+      <nav className="glass-solid fixed bottom-0 left-0 right-0 z-50 flex h-16 items-stretch justify-around border-t border-slate-200/60 px-2 md:hidden dark:border-white/10">
         {primary.map((item) => (
           <NavLink
             key={item.to}

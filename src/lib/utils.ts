@@ -114,23 +114,29 @@ export const NOTIFICATION_TYPE: Record<NotificationType, { label: string; classN
 // Fechas / formato
 // ---------------------------------------------------------------------------
 
+// Formatters Intl reutilizables: construirlos en cada llamada era lo más caro
+// de pintar listas de tareas (un formateador nuevo por tarjeta y por re-render).
+const dateFormat = new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+const dateTimeFormat = new Intl.DateTimeFormat('es-ES', {
+  day: '2-digit',
+  month: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+const moneyFormats = new Map<string, Intl.NumberFormat>()
+
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—'
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+  return dateFormat.format(d)
 }
 
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '—'
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleString('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  return dateTimeFormat.format(d)
 }
 
 export function formatMinutes(min: number | null | undefined): string {
@@ -158,7 +164,12 @@ export function isOverdue(fechaLimite: string | null | undefined): boolean {
 /** Formatea montos como moneda. */
 export function formatMoney(amount: number | null | undefined, currency = 'USD'): string {
   if (amount == null || Number.isNaN(amount)) return '—'
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount)
+  let fmt = moneyFormats.get(currency)
+  if (!fmt) {
+    fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency })
+    moneyFormats.set(currency, fmt)
+  }
+  return fmt.format(amount)
 }
 
 // ---------------------------------------------------------------------------

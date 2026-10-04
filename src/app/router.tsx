@@ -1,33 +1,47 @@
-import { AnimatePresence } from 'framer-motion'
-import { Route, Routes, useLocation } from 'react-router-dom'
-import { AppLayout } from './layout'
+import { lazy, Suspense } from 'react'
+import { Route, Routes } from 'react-router-dom'
 import { RedirectIfAuthed, RequireAdmin, RequireAuth } from '@/features/auth/guards'
+import { Spinner } from '@/components/Spinner'
+import { AppLayout } from './layout'
 import { LoginPage } from '@/features/auth/LoginPage'
-import { RegisterPage } from '@/features/auth/RegisterPage'
-import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
-import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage'
-import { PrivacyPage, TermsPage } from '@/features/auth/LegalPage'
-import { DashboardPage } from '@/features/dashboard/DashboardPage'
-import { MatrixPage } from '@/features/matrix/MatrixPage'
-import { TaskDetailPage } from '@/features/matrix/TaskDetailPage'
-import { ProjectsPage } from '@/features/projects/ProjectsPage'
-import { ProjectDetailPage } from '@/features/projects/ProjectDetailPage'
-import { PomodoroPage } from '@/features/pomodoro/PomodoroPage'
-import { TimeBlocksPage } from '@/features/timeblocks/TimeBlocksPage'
-import { MetricsPage } from '@/features/metrics/MetricsPage'
-import { HistoryPage } from '@/features/history/HistoryPage'
-import { PaymentsPage } from '@/features/payments/PaymentsPage'
-import { ProfilePage } from '@/features/profile/ProfilePage'
-import { AdminPage } from '@/features/admin/AdminPage'
-import { DesignPreviewPage } from '@/features/design/DesignPreviewPage'
-import { NotFoundPage } from '@/features/design/NotFoundPage'
+import { useAndroidBack } from './useAndroidBack'
+
+// Cada página va en su propio chunk: así la app arranca solo con lo necesario
+// para la pantalla actual en vez de cargar recharts, dnd-kit y el resto a la vez.
+const RegisterPage = lazy(() => import('@/features/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })))
+const ForgotPasswordPage = lazy(() => import('@/features/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })))
+const ResetPasswordPage = lazy(() => import('@/features/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })))
+const LegalPage = lazy(() => import('@/features/auth/LegalPage').then((m) => ({ default: m.TermsPage })))
+const PrivacyPage = lazy(() => import('@/features/auth/LegalPage').then((m) => ({ default: m.PrivacyPage })))
+const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
+const MatrixPage = lazy(() => import('@/features/matrix/MatrixPage').then((m) => ({ default: m.MatrixPage })))
+const TaskDetailPage = lazy(() => import('@/features/matrix/TaskDetailPage').then((m) => ({ default: m.TaskDetailPage })))
+const ProjectsPage = lazy(() => import('@/features/projects/ProjectsPage').then((m) => ({ default: m.ProjectsPage })))
+const ProjectDetailPage = lazy(() => import('@/features/projects/ProjectDetailPage').then((m) => ({ default: m.ProjectDetailPage })))
+const PomodoroPage = lazy(() => import('@/features/pomodoro/PomodoroPage').then((m) => ({ default: m.PomodoroPage })))
+const TimeBlocksPage = lazy(() => import('@/features/timeblocks/TimeBlocksPage').then((m) => ({ default: m.TimeBlocksPage })))
+const MetricsPage = lazy(() => import('@/features/metrics/MetricsPage').then((m) => ({ default: m.MetricsPage })))
+const HistoryPage = lazy(() => import('@/features/history/HistoryPage').then((m) => ({ default: m.HistoryPage })))
+const PaymentsPage = lazy(() => import('@/features/payments/PaymentsPage').then((m) => ({ default: m.PaymentsPage })))
+const ProfilePage = lazy(() => import('@/features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
+const AdminPage = lazy(() => import('@/features/admin/AdminPage').then((m) => ({ default: m.AdminPage })))
+const DesignPreviewPage = lazy(() => import('@/features/design/DesignPreviewPage').then((m) => ({ default: m.DesignPreviewPage })))
+const NotFoundPage = lazy(() => import('@/features/design/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
+
+function RouteFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <Spinner />
+    </div>
+  )
+}
 
 export function AppRouter() {
-  const location = useLocation()
+  useAndroidBack()
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <Routes location={location} key={location.pathname}>
+    <Suspense fallback={<RouteFallback />}>
+      <Routes>
         {/* Públicas */}
         <Route
           path="/login"
@@ -61,7 +75,7 @@ export function AppRouter() {
             </RedirectIfAuthed>
           }
         />
-        <Route path="/terminos" element={<TermsPage />} />
+        <Route path="/terminos" element={<LegalPage />} />
         <Route path="/privacidad" element={<PrivacyPage />} />
         <Route path="/design-preview" element={<DesignPreviewPage />} />
 
@@ -96,6 +110,6 @@ export function AppRouter() {
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
-    </AnimatePresence>
+    </Suspense>
   )
 }

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { CheckCircle2, Clock, Flame, Target } from 'lucide-react'
 import { useState } from 'react'
@@ -40,6 +40,9 @@ export function MetricsPage() {
   const metricsQuery = useQuery({
     queryKey: ['metrics', range],
     queryFn: () => metricsApi.get(range),
+    // Al cambiar rango muestra los datos anteriores mientras llegan los nuevos:
+    // sin esto la página entera parpadea a skeleton en cada cambio de pestaña.
+    placeholderData: keepPreviousData,
   })
   useErrorToast(metricsQuery.error, `metrics-${range}`)
 
@@ -193,7 +196,7 @@ export function MetricsPage() {
                   <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#8b96ab' }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                   <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#8b96ab' }} axisLine={false} tickLine={false} />
                   <Tooltip cursor={{ fill: 'rgba(76,111,255,0.08)' }} contentStyle={tooltipStyle} labelStyle={{ color: '#8b96ab' }} />
-                  <Bar dataKey="tareasCompletadas" name="Completadas" fill="#4C6FFF" radius={[6, 6, 0, 0]} fillOpacity={0.9} />
+                  <Bar dataKey="tareasCompletadas" name="Completadas" fill="#4C6FFF" radius={[6, 6, 0, 0]} fillOpacity={0.9} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -231,6 +234,7 @@ export function MetricsPage() {
                     strokeWidth={2.5}
                     dot={false}
                     activeDot={{ r: 4 }}
+                    isAnimationActive={false}
                   />
                   <Line
                     type="monotone"
@@ -240,6 +244,7 @@ export function MetricsPage() {
                     strokeWidth={2.5}
                     dot={false}
                     activeDot={{ r: 4 }}
+                    isAnimationActive={false}
                   />
                 </LineChart>
               </ResponsiveContainer>

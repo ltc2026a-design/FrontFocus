@@ -1,4 +1,5 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { saveOrShareFile } from '@/platform/files'
 import { useAuthStore } from '@/stores/authStore'
 import type {
   AdminStats,
@@ -254,15 +255,8 @@ export const exportApi = {
       params: { format },
       responseType: 'blob',
     })
-    const blob = res.data as Blob
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `focusflow-export.${format}`
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
+    const filename = `focusflow-export.${format}`
+    return saveOrShareFile(filename, res.data as Blob)
   },
 }
 

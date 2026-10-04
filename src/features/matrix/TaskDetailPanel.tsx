@@ -373,6 +373,19 @@ export function TaskDetailDrawer({
   taskId: string | null
   onClose: () => void
 }) {
+  // Escape cierra el drawer, pero solo cuando no hay un modal encima: así el
+  // botón Atrás de Android (que simula la tecla) cierra de uno en uno.
+  useEffect(() => {
+    if (!taskId) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (document.querySelector('[aria-modal="true"]')) return
+      onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [taskId, onClose])
+
   return (
     <AnimatePresence>
       {taskId && (
@@ -383,7 +396,7 @@ export function TaskDetailDrawer({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             onClick={onClose}
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[3px]"
+            className="fixed inset-0 z-40 bg-black/40"
             aria-hidden
           />
           <motion.aside
@@ -393,7 +406,9 @@ export function TaskDetailDrawer({
             transition={{ duration: 0.25, ease: 'easeOut' }}
             role="dialog"
             aria-label="Detalle de tarea"
-            className="glass-strong fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col shadow-2xl shadow-black/50"
+            // glass-solid: un panel a pantalla completa con backdrop-blur anima
+            // la máscara entera en cada cuadro y en WebView de Android se traba.
+            className="glass-solid fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col shadow-2xl shadow-black/50"
           >
             <div className="flex items-center justify-between border-b border-slate-200/60 px-5 py-4 dark:border-white/10">
               <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Detalle de tarea</p>

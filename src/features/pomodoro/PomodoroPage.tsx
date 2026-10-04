@@ -95,14 +95,16 @@ export function PomodoroPage() {
   }, [activeQuery.data, activeQuery.isLoading])
 
   // -----------------------------------------------------------------------
-  // Tick de 250ms basado en timestamps (sobrevive cambios de pestaña)
+  // Tick basado en timestamps (sobrevive cambios de pestaña).
+  // 1 s y no 250 ms: la pantalla solo muestra mm:ss, así que refrescar 4x por
+  // segundo re-renderizaba toda la página —incluido el anillo SVG— sin ganancia.
   // -----------------------------------------------------------------------
   const running = session?.estado === 'activa' && deadlineMs !== null
 
   useEffect(() => {
     if (!running) return
     setNow(Date.now())
-    const id = window.setInterval(() => setNow(Date.now()), 250)
+    const id = window.setInterval(() => setNow(Date.now()), 1000)
     const onVisibility = () => setNow(Date.now())
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
@@ -290,7 +292,7 @@ export function PomodoroPage() {
   const timerCircle = (
     <div className="relative" style={{ width: CIRCLE_SIZE, height: CIRCLE_SIZE }}>
       <div
-        className="absolute inset-6 rounded-full blur-2xl animate-glow-pulse"
+        className="absolute inset-6 rounded-full blur-2xl"
         style={{ background: isWork ? 'rgba(76,111,255,0.22)' : 'rgba(34,197,94,0.18)' }}
         aria-hidden
       />
@@ -320,7 +322,7 @@ export function PomodoroPage() {
           strokeLinecap="round"
           strokeDasharray={CIRCUMFERENCE}
           animate={{ strokeDashoffset: CIRCUMFERENCE * (1 - Math.min(1, Math.max(0, progress))) }}
-          transition={{ duration: 0.3, ease: 'linear' }}
+          transition={{ duration: 0.9, ease: 'linear' }}
           style={{ filter: `drop-shadow(0 0 10px ${ringColor}66)` }}
         />
       </svg>
@@ -347,23 +349,17 @@ export function PomodoroPage() {
   if (focusMode && canFocus) {
     return (
       <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-night px-4">
-        {/* Fondo animado sutil */}
+        {/* Fondo: orbes estáticos. Animar scale/posición de una capa con
+            blur(100px+) re-rueda el filtro en cada cuadro y en el celular baja
+            los FPS justo en el modo foco. */}
         <div className="pointer-events-none absolute inset-0" aria-hidden>
-          <motion.div
-            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/15 blur-[130px]"
-          />
-          <motion.div
-            animate={{ x: [0, 60, 0], y: [0, -40, 0] }}
-            transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
-            className="absolute bottom-0 left-10 h-72 w-72 rounded-full bg-secondary/10 blur-[100px]"
-          />
+          <div className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/15 blur-[110px]" />
+          <div className="absolute bottom-0 left-10 h-72 w-72 rounded-full bg-secondary/10 blur-[80px]" />
         </div>
 
         <button
           onClick={() => setFocusMode(false)}
-          className="absolute right-4 top-4 z-10 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-300 backdrop-blur transition-colors hover:bg-white/10"
+          className="absolute right-4 top-4 z-10 flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm font-semibold text-slate-300 transition-colors hover:bg-white/15"
         >
           <X className="h-4 w-4" /> Salir de modo foco
         </button>
@@ -376,7 +372,7 @@ export function PomodoroPage() {
         >
           <div className="scale-110 text-slate-100 sm:scale-125">{timerCircle}</div>
           {linkedTask && (
-            <div className="max-w-md rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-center backdrop-blur">
+            <div className="max-w-md rounded-2xl border border-white/10 bg-white/8 px-5 py-3 text-center">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 Enfocado en
               </p>

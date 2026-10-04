@@ -23,7 +23,7 @@ import { PageTransition } from '@/components/PageTransition'
 import { useToast } from '@/components/Toast'
 import { useTheme } from '@/hooks/useTheme'
 import { apiErrorMessage, authApi, exportApi, paymentsApi, projectsApi, tasksApi } from '@/lib/api'
-import { requestPermission } from '@/platform/notifications'
+import { permissionStatus, requestPermission } from '@/platform/notifications'
 import { COMMON_TIMEZONES, formatDate } from '@/lib/utils'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -66,9 +66,11 @@ export function ProfilePage() {
   const [zonaHoraria, setZonaHoraria] = useState(user?.zonaHoraria || 'UTC')
   const [avatar, setAvatar] = useState<string | null>(user?.avatarUrl ?? null)
   const [exporting, setExporting] = useState<'json' | 'csv' | null>(null)
-  const [notifPerm, setNotifPerm] = useState<string>(() =>
-    typeof Notification !== 'undefined' ? Notification.permission : 'unsupported',
-  )
+  const [notifPerm, setNotifPerm] = useState<string>('prompt')
+
+  useEffect(() => {
+    void permissionStatus().then(setNotifPerm)
+  }, [])
 
   useEffect(() => {
     if (user) {
@@ -120,8 +122,13 @@ export function ProfilePage() {
   const handleExport = async (format: 'json' | 'csv') => {
     setExporting(format)
     try {
-      await exportApi.download(format)
-      toast.success(`Exportación ${format.toUpperCase()} descargada`)
+      const result = await exportApi.download(format)
+      if (!result.ok) throw new Error(result.location)
+      toast.success(
+        result.where === 'native'
+          ? `Guardado en Documentos y listo para compartir`
+          : `Exportación ${format.toUpperCase()} descargada`,
+      )
     } catch (err) {
       toast.error(apiErrorMessage(err, `No se pudo exportar a ${format.toUpperCase()}`))
     } finally {
@@ -131,7 +138,7 @@ export function ProfilePage() {
 
   const enableNotifications = async () => {
     const granted = await requestPermission()
-    setNotifPerm(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported')
+    setNotifPerm(await permissionStatus())
     if (granted) toast.success('Notificaciones activadas')
     else toast.info('Permiso de notificaciones no concedido')
   }

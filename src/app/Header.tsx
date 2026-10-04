@@ -26,7 +26,7 @@ export function Header() {
   }
 
   return (
-    <header className="glass sticky top-0 z-40 flex h-16 items-center justify-between gap-3 rounded-none border-x-0 border-t-0 px-4 sm:px-6">
+    <header className="glass-solid sticky top-0 z-40 flex h-16 items-center justify-between gap-3 rounded-none border-x-0 border-t-0 px-4 sm:px-6">
       <div className="min-w-0">
         <p className="truncate text-sm font-bold text-slate-800 dark:text-slate-100">
           {user?.nombre ?? '—'}

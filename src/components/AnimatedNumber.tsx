@@ -1,5 +1,5 @@
-import { animate, motion, useInView } from 'framer-motion'
-import { useEffect, useRef, useState } from 'react'
+import { animate, motion, useInView, useMotionValue, useTransform } from 'framer-motion'
+import { useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 
 interface AnimatedNumberProps {
@@ -19,23 +19,23 @@ export function AnimatedNumber({
   className,
 }: AnimatedNumberProps) {
   const ref = useRef<HTMLSpanElement>(null)
-  const inView = useInView(ref, { once: false, margin: '-10% 0px' })
-  const [display, setDisplay] = useState(0)
+  // once: con inView repetido, cada scroll reiniciaba el conteo y re-renderizaba
+  // el componente un par de decenas de veces por segundo.
+  const inView = useInView(ref, { once: true, margin: '-10% 0px' })
+  const progress = useMotionValue(0)
+  const display = useTransform(progress, (v) => `${v.toFixed(decimals)}${suffix}`)
 
   useEffect(() => {
     if (!inView) return
-    const controls = animate(0, value, {
+    const from = progress.get()
+    const controls = animate(from, value, {
       duration,
       ease: 'easeOut',
-      onUpdate: (v) => setDisplay(v),
+      onUpdate: (v) => progress.set(v),
     })
     return () => controls.stop()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inView, value, duration])
-
-  const formatted =
-    decimals > 0
-      ? display.toFixed(decimals)
-      : Math.round(display).toLocaleString('es-ES')
 
   return (
     <motion.span
@@ -45,8 +45,7 @@ export function AnimatedNumber({
       transition={{ duration: 0.3 }}
       className={cn('tabular-nums', className)}
     >
-      {formatted}
-      {suffix}
+      {display}
     </motion.span>
   )
 }
