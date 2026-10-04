@@ -34,9 +34,21 @@ export function ForgotPasswordPage() {
         }
       >
         {sent ? (
-          <div className="rounded-xl border border-secondary/30 bg-secondary/10 px-4 py-3 text-sm text-secondary">
-            Si <b>{email}</b> está registrado, recibirás un correo con el enlace de restablecimiento
-            (vence en 30 minutos). Revisa también tu carpeta de spam.
+          <div className="space-y-4">
+            <div className="rounded-xl border border-secondary/30 bg-secondary/10 px-4 py-3 text-sm text-secondary">
+              Enviamos un enlace a <b>{email}</b>. Vence en 30 minutos; si no lo
+              encuentras, revisa la carpeta de spam.
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSent(false)
+                setEmail('')
+              }}
+              className="text-xs font-semibold text-primary hover:underline"
+            >
+              Usar otro correo
+            </button>
           </div>
         ) : (
           <form
