@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+/* Modo oscuro por clase (.dark en <html>) en Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Paleta FocusFlow */
+  --color-primary: #4c6fff;
+  --color-primary-soft: #6d88ff;
+  --color-primary-deep: #3451d1;
+  --color-secondary: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  --color-night: #070b14;
+  --color-night-2: #0b1120;
+  --color-night-3: #111a2e;
+
+  /* Cuadrantes Eisenhower */
+  --color-quad-ui: #ef4444; /* urgente + importante */
+  --color-quad-uni: #f59e0b; /* urgente + no importante */
+  --color-quad-nui: #4c6fff; /* no urgente + importante */
+  --color-quad-nuni: #22c55e; /* no urgente + no importante */
+
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --animate-float: float 9s ease-in-out infinite;
+  --animate-float-slow: float 14s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-glow-pulse: glow-pulse 2.4s ease-in-out infinite;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    33% {
+      transform: translate(30px, -40px) scale(1.08);
+    }
+    66% {
+      transform: translate(-25px, 25px) scale(0.95);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  @keyframes glow-pulse {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+}
+
+:root {
+  --ff-bg: #f3f5fb;
+  --ff-text: #101828;
+  --ff-muted: #5b6474;
+  color-scheme: light;
+}
+
+.dark {
+  --ff-bg: #070b14;
+  --ff-text: #e6ebf5;
+  --ff-muted: #8b96ab;
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--ff-bg);
+  color: var(--ff-text);
+  -webkit-font-smoothing: antialiased;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.dark body {
+  background-image:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(76, 111, 255, 0.13), transparent),
+    radial-gradient(ellipse 60% 40% at 90% 110%, rgba(34, 197, 94, 0.07), transparent);
+  background-attachment: fixed;
+}
+
+/* Glassmorphism sutil */
+.glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(16, 24, 40, 0.08);
+}
+
+.dark .glass {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(16, 24, 40, 0.1);
+}
+
+.dark .glass-strong {
+  background: rgba(11, 17, 32, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Texto con degradado neón */
+.text-gradient {
+  background: linear-gradient(90deg, #4c6fff 0%, #7dd3fc 50%, #22c55e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(127, 140, 165, 0.12) 25%,
+    rgba(127, 140, 165, 0.24) 50%,
+    rgba(127, 140, 165, 0.12) 75%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+  border-radius: 0.5rem;
+}
+
+/* Scrollbars finos */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 135, 165, 0.35) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(120, 135, 165, 0.35);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Inputs de tipo fecha/hora legibles en dark */
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+}
